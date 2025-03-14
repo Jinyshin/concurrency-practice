@@ -7,7 +7,7 @@ import org.redisson.config.Config;
 
 import java.util.concurrent.TimeUnit;
 
-public class RedisLockExample {
+public class SingleRedissonLockExample {
     public static void main(String[] args) {
         Config config = new Config();
         config.useSingleServer().setAddress("redis://127.0.0.1:6379");
