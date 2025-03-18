@@ -11,10 +11,38 @@ import java.util.concurrent.TimeUnit;
 @Service
 public class LockTestService {
     private static final String NAMESPACE = "jiny";
+    private static final String LOCK_KEY = "jiny:lock:sharedResource";
     private final RedissonClient redissonClient;
 
     public LockTestService(RedissonClient redissonClient) {
         this.redissonClient = redissonClient;
+    }
+
+    public void accessSharedResource(String threadName) {
+        RLock lock = redissonClient.getLock(LOCK_KEY);
+        log.info("[{}] 락 획득 시도 중...", threadName);
+
+        try {
+            // 최대 5초 대기, 락 유지 시간 10초
+            boolean acquired = lock.tryLock(5, 10, TimeUnit.SECONDS);
+            if (acquired) {
+                log.info("[{}] 락 획득 성공! 공유 자원 작업 시작", threadName);
+                // 공유 자원 작업 시뮬레이션 (3초 소요)
+                Thread.sleep(3000);
+                log.info("[{}] 작업 완료", threadName);
+            } else {
+                log.warn("[{}] 락 획득 실패, 대기 시간 초과", threadName);
+            }
+        } catch (InterruptedException e) {
+            log.error("[{}] 락 처리 중 인터럽트 발생", threadName, e);
+            Thread.currentThread().interrupt();
+        } finally {
+            // 현재 스레드가 락을 가지고 있으면 해제
+            if (lock.isHeldByCurrentThread()) {
+                lock.unlock();
+                log.info("[{}] 락 해제 완료", threadName);
+            }
+        }
     }
 
     public void testLock() {
