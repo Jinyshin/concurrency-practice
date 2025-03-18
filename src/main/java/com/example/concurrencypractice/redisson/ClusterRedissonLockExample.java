@@ -1,4 +1,4 @@
-package com.example.concurrencypractice.redis;
+package com.example.concurrencypractice.redisson;
 
 import org.redisson.Redisson;
 import org.redisson.api.RKeys;
