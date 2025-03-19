@@ -55,9 +55,13 @@ public class LockTestService {
 
                 // 공유 자원 작업 진행
                 long before = sharedResource.get();
-                sharedResource.incrementAndGet();
-                Thread.sleep(3000);
+                Thread.sleep(3000); // 의도적 지연
+                sharedResource.set(before + 1);
                 long after = sharedResource.get();
+//                long before = sharedResource.get();
+//                sharedResource.incrementAndGet();
+//                Thread.sleep(3000);
+//                long after = sharedResource.get();
 
                 log.info("[{}] 공유 자원 값 변경: {} → {}", identifier, before, after);
                 log.info("[{}] 작업 완료", identifier);

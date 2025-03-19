@@ -21,7 +21,7 @@ public class ConcurrencyPracticeApplication {
     CommandLineRunner run(LockTestService lockTestService) {
         return args -> {
             String clientName = System.getProperty("client.name", "JVM-Default");
-            boolean useLock = Boolean.parseBoolean(System.getProperty("use.lock", "true")); // 락 사용 여부
+            boolean useLock = Boolean.parseBoolean(System.getProperty("use.lock", "false")); // 락 사용 여부
             int threadCount = 4; // 각 JVM 마다 4개의 스레드
 
             lockTestService.incrementJvmCount();
