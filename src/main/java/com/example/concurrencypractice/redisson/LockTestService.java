@@ -5,6 +5,7 @@ import org.redisson.api.RLock;
 import org.redisson.api.RedissonClient;
 import org.springframework.stereotype.Service;
 
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.TimeUnit;
 
 @Slf4j
@@ -13,6 +14,9 @@ public class LockTestService {
     private static final String NAMESPACE = "jiny";
     private static final String LOCK_KEY = "jiny:lock:sharedResource";
     private final RedissonClient redissonClient;
+
+    // 공유 자원
+    private final AtomicInteger sharedResource = new AtomicInteger(0);
 
     public LockTestService(RedissonClient redissonClient) {
         this.redissonClient = redissonClient;
@@ -23,12 +27,19 @@ public class LockTestService {
         log.info("[{}] 락 획득 시도 중...", threadName);
 
         try {
-            // 최대 5초 대기, 락 유지 시간 10초
-            boolean acquired = lock.tryLock(5, 10, TimeUnit.SECONDS);
+            // 최대 7초 대기, 락 유지 시간 10초
+            boolean acquired = lock.tryLock(7, 10, TimeUnit.SECONDS);
             if (acquired) {
-                log.info("[{}] 락 획득 성공! 공유 자원 작업 시작", threadName);
-                // 공유 자원 작업 시뮬레이션 (3초 소요)
+                log.info("[{}] 🔒 락 획득 성공! 공유 자원 작업 시작", threadName);
+
+                // 공유 자원 작업 진행
+                int before = sharedResource.get();
+                sharedResource.incrementAndGet();
+                int after = sharedResource.get();
                 Thread.sleep(3000);
+
+                log.info("[{}] 공유 자원 값 변경: {} → {}", threadName, before, after);
+
                 log.info("[{}] 작업 완료", threadName);
             } else {
                 log.warn("[{}] 락 획득 실패, 대기 시간 초과", threadName);
@@ -43,6 +54,10 @@ public class LockTestService {
                 log.info("[{}] 락 해제 완료", threadName);
             }
         }
+    }
+
+    public int getSharedResourceValue() {
+        return sharedResource.get();
     }
 
     public void testLock() {
