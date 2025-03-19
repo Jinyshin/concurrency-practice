@@ -20,15 +20,16 @@ public class ConcurrencyPracticeApplication {
     @Bean
     CommandLineRunner run(LockTestService lockTestService) {
         return args -> {
-            int threadCount = 8;
+            String clientName = System.getProperty("client.name", "JVM-Default");
+            int threadCount = 4; // 각 JVM 마다 4개의 스레드
 
-            try (ExecutorService executor = Executors.newFixedThreadPool(5)) {
+            try (ExecutorService executor = Executors.newFixedThreadPool(4)) {
                 for (int i = 1; i <= threadCount; i++) {
                     String threadName = "Thread-" + i;
-                    executor.submit(() -> lockTestService.accessSharedResource(threadName));
+                    executor.submit(() -> lockTestService.accessSharedResource(clientName, threadName));
                 }
             }
-            System.out.println("✅ 최종 공유 자원 값: " + lockTestService.getSharedResourceValue());
+            System.out.println("✅ [" + clientName + "] 최종 공유 자원 값: " + lockTestService.getSharedResourceValue());
         };
     }
 }
