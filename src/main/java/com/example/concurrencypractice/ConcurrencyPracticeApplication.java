@@ -1,6 +1,6 @@
 package com.example.concurrencypractice;
 
-import com.example.concurrencypractice.redisson.LockTestService;
+import com.example.concurrencypractice.lock.redisson.LockTestService;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
@@ -8,7 +8,6 @@ import org.springframework.context.annotation.Bean;
 
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
-import java.util.concurrent.TimeUnit;
 
 @SpringBootApplication
 public class ConcurrencyPracticeApplication {
@@ -21,7 +20,7 @@ public class ConcurrencyPracticeApplication {
     CommandLineRunner run(LockTestService lockTestService) {
         return args -> {
             String clientName = System.getProperty("client.name", "JVM-Default");
-            boolean useLock = Boolean.parseBoolean(System.getProperty("use.lock", "false")); // 락 사용 여부
+            boolean useLock = Boolean.parseBoolean(System.getProperty("use.lock", "true")); // 락 사용 여부
             int threadCount = 4; // 각 JVM 마다 4개의 스레드
 
             lockTestService.incrementJvmCount();

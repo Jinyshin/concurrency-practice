@@ -1,8 +1,9 @@
-package com.example.concurrencypractice.redisson;
+package com.example.concurrencypractice.lock.redisson;
 
 import lombok.extern.slf4j.Slf4j;
 import org.redisson.api.RAtomicLong;
 import org.redisson.api.RLock;
+import org.redisson.api.RTopic;
 import org.redisson.api.RedissonClient;
 import org.springframework.stereotype.Service;
 
@@ -15,29 +16,42 @@ public class LockTestService {
     private static final String LOCK_KEY = "jiny:lock:sharedResource";
     private static final String RESOURCE_KEY = "jiny:sharedResource";
     private static final String JVM_COUNT_KEY = "jiny:jvm:count";
+    private static final String LOCK_TOPIC = "jiny:lock:topic"; // 락 이벤트 전송을 위한 Redis Topic
 
     private final RedissonClient redissonClient;
     private final RAtomicLong sharedResource;
     private final RAtomicLong jvmCount;
+    private final RTopic lockTopic;
 
     public LockTestService(RedissonClient redissonClient) {
         this.redissonClient = redissonClient;
         this.sharedResource = redissonClient.getAtomicLong(RESOURCE_KEY);
         this.jvmCount = redissonClient.getAtomicLong(JVM_COUNT_KEY);
-        log.info("공유자원 초기겂: {}", sharedResource.get());
+        this.lockTopic = redissonClient.getTopic(LOCK_TOPIC); // 락 이벤트 감지용 RTopic
+        log.info("공유자원 초기값: {}", sharedResource.get());
+
+        // 락 이벤트 리스너 추가 (락 획득/해제 시 실행되는 스레드 확인)
+        this.lockTopic.addListener(String.class, (channel, message) -> {
+            log.info("🔔 리스너 락 이벤트 감지! 메시지: {} | 실행 중인 스레드: {}", message, Thread.currentThread().getName());
+        });
     }
 
     public void accessSharedResource(String clientName, String threadName, boolean useLock) {
         String identifier = clientName + "-" + threadName;
         log.info("[{}] 작업 시도 중... (현재 공유자원 값: {})", identifier, sharedResource.get());
 
-        RLock lock = useLock ? redissonClient.getLock(LOCK_KEY) : null;
+        RLock lock = useLock ? redissonClient.getLock(LOCK_KEY) : null; // 락 사용시 RedissonLock Object 반환
         boolean acquired = true; // 락 미사용시 기본값 true
 
         if (useLock) {
             try {
                 log.info("[{}] 락 획득 시도 중...", identifier);
-                acquired = lock.tryLock(7, 10, TimeUnit.SECONDS);
+                acquired = lock.tryLock(1, 3, TimeUnit.MINUTES);
+
+                if (acquired) {
+                    // 락 획득 이벤트 발행
+                    lockTopic.publish("[락 획득] 🔒 " + identifier + " | 실행 스레드: " + Thread.currentThread().getName());
+                }
             } catch (InterruptedException e) {
                 log.error("[{}] 락 처리 중 인터럽트 발생", identifier, e);
                 Thread.currentThread().interrupt();
@@ -47,21 +61,13 @@ public class LockTestService {
 
         if (acquired) {
             try {
-                if (useLock) {
-                    log.info("[{}] 🔒 락 획득 성공! 공유 자원 작업 시작", identifier);
-                } else {
-                    log.info("[{}] 🔑 락 없이 공유 자원 작업 시작", identifier);
-                }
+                log.info("[{}] 공유 자원 작업 시작 (락 사용 여부: {})", identifier, useLock);
 
                 // 공유 자원 작업 진행
                 long before = sharedResource.get();
-                Thread.sleep(3000); // 의도적 지연
+                Thread.sleep(5000); // 의도적 지연
                 sharedResource.set(before + 1);
                 long after = sharedResource.get();
-//                long before = sharedResource.get();
-//                sharedResource.incrementAndGet();
-//                Thread.sleep(3000);
-//                long after = sharedResource.get();
 
                 log.info("[{}] 공유 자원 값 변경: {} → {}", identifier, before, after);
                 log.info("[{}] 작업 완료", identifier);
@@ -74,6 +80,7 @@ public class LockTestService {
                 if (useLock && lock.isHeldByCurrentThread()) {
                     lock.unlock();
                     log.info("[{}] 락 해제 완료", identifier);
+                    lockTopic.publish("[락 해제] 🔓 " + identifier + " | 실행 스레드: " + Thread.currentThread().getName());
                 }
             }
         } else {

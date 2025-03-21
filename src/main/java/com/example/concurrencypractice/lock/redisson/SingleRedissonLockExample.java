@@ -1,4 +1,4 @@
-package com.example.concurrencypractice.redisson;
+package com.example.concurrencypractice.lock.redisson;
 
 import org.redisson.Redisson;
 import org.redisson.api.RLock;
