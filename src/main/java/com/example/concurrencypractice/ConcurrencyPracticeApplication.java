@@ -43,6 +43,7 @@ public class ConcurrencyPracticeApplication {
                 }
             }
             System.out.println("✅ [" + clientName + "] 최종 공유 자원 값: " + lockTestService.getSharedResourceValue());
+            System.exit(0);
         };
     }
 }
