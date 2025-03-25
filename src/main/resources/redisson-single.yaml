@@ -1,7 +1,7 @@
 singleServerConfig:
   idleConnectionTimeout: 10000
   connectTimeout: 10000
-  timeout: 3000
+  timeout: 120000
   retryAttempts: 3
   retryInterval: 1500
   password: null
