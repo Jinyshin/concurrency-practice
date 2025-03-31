@@ -10,14 +10,14 @@ import java.util.concurrent.TimeUnit;
 
 @Slf4j
 @Service
-public class LockTestService {
+public class BasicRedissonLockService {
     private static final String LOCK_KEY = "myLock";
     private static final String RESOURCE_KEY = "myLock:sharedResource";
 
     private final RedissonClient redissonClient;
     private final RAtomicLong sharedResource;
 
-    public LockTestService(RedissonClient redissonClient) {
+    public BasicRedissonLockService(RedissonClient redissonClient) {
         this.redissonClient = redissonClient;
         this.sharedResource = redissonClient.getAtomicLong(RESOURCE_KEY);
         log.info("✅ 공유자원 초기값: {}", sharedResource.get());
@@ -39,7 +39,7 @@ public class LockTestService {
 
         if (acquired) {
             try {
-                log.info("🔒 [{}] 락 획득 공유 자원 작업 시작", identifier);
+                log.info("🔒 [{}] 락 획득 성공, 공유 자원 작업 시작", identifier);
 
                 // 공유 자원 작업 진행
                 long before = sharedResource.get();
